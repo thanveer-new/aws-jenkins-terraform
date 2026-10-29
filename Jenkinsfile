@@ -2,6 +2,11 @@
 pipeline {
     agent any
 
+    environment {
+        AWS_DEFAULT_REGION = 'ap-south-1'
+        AWS_REGION = 'ap-south-1'
+    }
+
     stages {
         stage('Checkout') {
             steps {
@@ -35,6 +40,26 @@ pipeline {
             steps {
                 dir('terraform') {
                     sh 'terraform validate'
+                }
+            }
+        }
+
+        stage('AWS Authentication and Terraform Plan') {
+            steps {
+                withCredentials([
+                    string(
+                        credentialsId: 'aws-access-key-id',
+                        variable: 'AWS_ACCESS_KEY_ID'
+                    ),
+                    string(
+                        credentialsId: 'aws-secret-access-key',
+                        variable: 'AWS_SECRET_ACCESS_KEY'
+                    )
+                ]) {
+                    dir('terraform') {
+                        sh 'aws sts get-caller-identity'
+                        sh 'terraform plan -input=false -no-color'
+                    }
                 }
             }
         }
